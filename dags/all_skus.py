@@ -41,6 +41,8 @@ import os
 from dotenv import load_dotenv, find_dotenv
 from include.delta_load_all_skus import run_delta_load
 from include.full_load_all_skus import run_full_load
+
+from include.dbt_run_raw_layer import dbt_run_raw_layers
 # Logging
 
 def branch_on():
@@ -103,16 +105,7 @@ default_args = {
     # 'sla_miss_callback': yet_another_function,
     # 'trigger_rule': 'all_success'
 }
-def dbt_run():
-    myToken = 'dbts_fyC68GQgSvKb1IYlisV5aXhOUhIlZxkYURlyH860k8bqoxLX8one89+A=='
-    myUrl = 'https://cloud.getdbt.com/api/v2/accounts/1335/jobs/2833/run/'
 
-    #string  = {'Authorization': 'token {}'.format(myToken),'cause' :'Kick Off From Testing Script'}
-    head ={'Authorization': 'token {}'.format(myToken)}
-    body ={'cause' :'Kicked Off From ALL_SKUS Airflow'}
-    r = requests.post(myUrl, headers=head,data=body)
-    r_dictionary= r.json()
-    print(r.text)
 
 with DAG(
     dag_id="all_skus_branch",
@@ -127,7 +120,7 @@ with DAG(
 
     
     # dbt_job_run_raw_layers  = PythonOperator( task_id='dbt_job_run_raw_layers'
-    #                                         , python_callable=dbt_run
+    #                                         , python_callable=dbt_run_raw_layer
     #                                         , trigger_rule='none_failed')
     full_load = PythonOperator(
                                 task_id='run_full_load'
@@ -147,7 +140,9 @@ with DAG(
                                                 task_id='choose_delta_or_full_load',
                                                 python_callable=branch_on
                                                 )
-data_dog_log >> branch_operator >>[full_load,delta_load] #>>dbt_job_run_raw_layers
+    dbt_job_run_raw_layers  = PythonOperator(task_id='dbt_job_run_raw_layers', python_callable=dbt_run_raw_layers)
+    data_dog_log_final = DummyOperator(task_id='data_dog_log_final', retries=3)
+data_dog_log >> branch_operator >>[full_load,delta_load] >>dbt_job_run_raw_layers >>data_dog_log_final
 
 
     
