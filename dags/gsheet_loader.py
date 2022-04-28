@@ -137,7 +137,7 @@ with DAG(
                                                                     , 'pg_tables_to_use': 'merchants_active'
                                                                     ,'url' :'https://docs.google.com/spreadsheets/d/1qoMyAAgWpvaXCnR6oQzdBP8Rdz5_axki2uUTxY0XSkI/edit?pli=1#gid=1301213425'
                                                     
-                                                                    , 'sheet_name':'active'
+                                                                    , 'sheet_name':'frozen'
                                                                    }, retries=5
                                         )
     COPY_MERCHANT_ON_HOLD = PythonOperator(
@@ -158,14 +158,8 @@ with DAG(
                                                                     , 'sheet_name':'new'
                                                                    }, retries=5
                                         )
-    # dbt_job_raw_layers = PythonOperator(
-    #     task_id='dbt_job_raw_layers', python_callable=dbt_run) 
-    # run_All_SKUs =                       PostgresOperator(
-    #                                                             task_id="run_All_SKUs",
-    #                                                             postgres_conn_id="post_gres_prod",
-    #                                                             sql="custom/ALL_SKUS.sql",
-    #                                                         )
+    data_dog_log_final = DummyOperator(task_id='data_dog_log_final', retries=3)
 data_dog_log >> COPY_QR_KOLLEX_EXPRESS >>COPY_QR_KOLLEX_SHOP >>COPY_EXCLUDE_LIST  >>COPY_QR_KOLLEX_EXPRESS_SHEET_LOADER  #>> dbt_job_raw_layers#>>run_All_SKUs 
 COPY_QR_KOLLEX_EXPRESS_SHEET_LOADER >>COPY_QR_KOLLEX_SHOP_SHEET_LOADER >>COPY_HOLDING >>COPY_MERCHANT_ACTIVE
-COPY_MERCHANT_ACTIVE >>COPY_MERCHANT_ON_HOLD >>COPY_MERCHANT_NEW
+COPY_MERCHANT_ACTIVE >>COPY_MERCHANT_ON_HOLD >>COPY_MERCHANT_NEW >>data_dog_log_final
     

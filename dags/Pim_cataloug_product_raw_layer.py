@@ -26,7 +26,7 @@ import logging
 from dotenv import load_dotenv
 import os
 
-
+from include.dbt_run_raw_layer import dbt_run_raw_layers
 import requests
 logging.getLogger().setLevel(logging.INFO)
 
@@ -155,10 +155,8 @@ with DAG(
                                                                     , 'mysql_tables_to_copy': 'product'
                                                                     , 'mysql_schema': 'gfghdata'}, retries=5)
     dbt_job_raw_layers = PythonOperator(
-        task_id='dbt_job_raw_layers', python_callable=dbt_run) 
-    # run_All_SKUs =                       PostgresOperator(
-    #                                                             task_id="run_All_SKUs",
-    #                                                             postgres_conn_id="post_gres_prod",
-    #                                                             sql="custom/ALL_SKUS.sql",
-    #                                                         )
-data_dog_log >> copy_PIM_CATALOUG_PRODUCT_from_mySQL >>copy_PIM_CATALOUG_PRODUCT_model_from_mySQL >> copy_GFGH_DATA_from_mySQL #>> dbt_job_raw_layers#>>run_All_SKUs 
+        task_id='dbt_job_raw_layers', python_callable=dbt_run_raw_layers) 
+    data_dog_log_final = DummyOperator(task_id='data_dog_log_final', retries=3)
+  
+data_dog_log >> copy_PIM_CATALOUG_PRODUCT_from_mySQL >>copy_PIM_CATALOUG_PRODUCT_model_from_mySQL >> copy_GFGH_DATA_from_mySQL >> dbt_job_raw_layers#>>run_All_SKUs 
+copy_PIM_CATALOUG_PRODUCT_model_from_mySQL >> copy_GFGH_DATA_from_mySQL >> dbt_job_raw_layers>>data_dog_log_final

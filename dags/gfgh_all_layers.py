@@ -18,6 +18,7 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
 import requests
 from dotenv import load_dotenv
+from include.dbt_run_all_layers import dbt_run_all_layers
 def load_gfgh_data() :
     os.chdir('include')
     
@@ -136,16 +137,7 @@ default_args = {
     # 'sla_miss_callback': yet_another_function,
     # 'trigger_rule': 'all_success'
 }
-def dbt_run():
-    myToken = os.getenv('dbt_token')
-    myUrl = 'https://cloud.getdbt.com/api/v2/accounts/1335/jobs/2497/run/'
 
-    #string  = {'Authorization': 'token {}'.format(myToken),'cause' :'Kick Off From Testing Script'}
-    head ={'Authorization': 'token {}'.format(myToken)}
-    body ={'cause' :'Kick Off From Testing Script'}
-    r = requests.post(myUrl, headers=head,data=body)
-    r_dictionary= r.json()
-    print(r.text)
 
 with DAG(
     dag_id="gfgh_all_layers",
@@ -157,8 +149,9 @@ with DAG(
     # t1, t2 and t3 are examples of tasks created by instantiating operators
     data_dog_log 	= DummyOperator(task_id='data_dog_log', retries=3)
     copy_gfgh_from_mySQL	= PythonOperator(task_id='copy_gfgh_from_mySQL', python_callable=load_gfgh_data, retries=5)
-    dbt_job_run_all_layers  = PythonOperator(task_id='dbt_job_run_all_layers', python_callable=dbt_run)
-data_dog_log >> copy_gfgh_from_mySQL >>dbt_job_run_all_layers
+    dbt_job_run_all_layers  = PythonOperator(task_id='dbt_job_run_all_layers', python_callable=dbt_run_all_layers)
+    data_dog_log_final = DummyOperator(task_id='data_dog_log_final', retries=3)
+data_dog_log >> copy_gfgh_from_mySQL >>dbt_job_run_all_layers>>data_dog_log_final
 
 
     
