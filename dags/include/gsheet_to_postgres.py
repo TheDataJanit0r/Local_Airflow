@@ -6,9 +6,9 @@ def run_gsheet_load(**kwargs):
     from gspread_dataframe import get_as_dataframe
     from sqlalchemy import create_engine, types
     from dotenv import load_dotenv
-    os.chdir('include')
+    # os.chdir('include')
     
-    load_dotenv('enviroment_variables.env')
+    # load_dotenv('enviroment_variables.env')
     
     gsheet_credentials={
         

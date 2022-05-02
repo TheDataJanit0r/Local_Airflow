@@ -147,9 +147,18 @@ with DAG(
 ) as dag:
 
     # t1, t2 and t3 are examples of tasks created by instantiating operators
-    data_dog_log 	= DummyOperator(task_id='data_dog_log', retries=3)
-    copy_gfgh_from_mySQL	= PythonOperator(task_id='copy_gfgh_from_mySQL', python_callable=load_gfgh_data, retries=5)
-    dbt_job_run_all_layers  = PythonOperator(task_id='dbt_job_run_all_layers', python_callable=dbt_run_all_layers)
+    data_dog_log 	= DummyOperator(
+                                    task_id='data_dog_log'
+                                    , retries=3
+                                    )
+    copy_gfgh_from_mySQL	= PythonOperator(
+                                            task_id='copy_gfgh_from_mySQL'
+                                            , python_callable=load_gfgh_data
+                                            , retries=5)
+    dbt_job_run_all_layers  = PythonOperator(
+                                                task_id='dbt_job_run_all_layers'
+                                                , python_callable=dbt_run_all_layers
+                                            )
     data_dog_log_final = DummyOperator(task_id='data_dog_log_final', retries=3)
 data_dog_log >> copy_gfgh_from_mySQL >>dbt_job_run_all_layers>>data_dog_log_final
 

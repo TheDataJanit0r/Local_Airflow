@@ -155,7 +155,9 @@ with DAG(
                                                                     , 'mysql_tables_to_copy': 'product'
                                                                     , 'mysql_schema': 'gfghdata'}, retries=5)
     dbt_job_raw_layers = PythonOperator(
-        task_id='dbt_job_raw_layers', python_callable=dbt_run_raw_layers) 
+                                        task_id='dbt_job_raw_layers'
+                                        , python_callable=dbt_run_raw_layers
+                                        ) 
     data_dog_log_final = DummyOperator(task_id='data_dog_log_final', retries=3)
   
 data_dog_log >> copy_PIM_CATALOUG_PRODUCT_from_mySQL >>copy_PIM_CATALOUG_PRODUCT_model_from_mySQL >> copy_GFGH_DATA_from_mySQL >> dbt_job_raw_layers#>>run_All_SKUs 

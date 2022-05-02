@@ -46,22 +46,25 @@ from include.dbt_run_raw_layer import dbt_run_raw_layers
 # Logging
 
 def branch_on():
-    print('Current Directory is '+os.getcwd())
-    os.chdir('include')
-    print('Current Directory is '+os.getcwd())
+    # print('Current Directory is '+os.getcwd())
+    # os.chdir('include')
+    # print('Current Directory is '+os.getcwd())
     
-    load_dotenv('enviroment_variables.env')
-    print(os.environ.items())
-    pg_host =  os.getenv('PG_HOST')
+    # load_dotenv('enviroment_variables.env')
+    # for x in os.environ.items():
+    #     print(x)
+    #     print("\n")
+    
+    pg_host =  os.getenv('PG_HOST_STAGING')
     pg_database = os.getenv('PG_DATABASE')
 
-    pg_user = os.getenv('PG_USERNAME_WRITE')
-    pg_database =os.getenv('PG_DATABASE')
+    pg_user = os.getenv('PG_USERNAME_WRITE_STAGING')
+   
 
-    pg_password = os.getenv('PG_PASSWORD_WRITE')
+    pg_password = os.getenv('PG_PASSWORD_WRITE_STAGING')
     pg_schema = os.getenv('PG_RAW_SCHEMA')
     pg_connect_string = f"postgresql://{pg_user}:{pg_password}@{pg_host}/{pg_database}"
-    print(f"postgresql://{pg_user}:{pg_password}@{pg_host}/{pg_database}")
+    #print(pg_connect_string)
     pg_engine = create_engine(f"{pg_connect_string}", echo=False)
 
     merchants_active= pd.read_sql_table(os.getenv('PG_MERCHANTS_ACTIVE'), con=pg_engine,schema=os.getenv('PG_RAW_SCHEMA'))
@@ -140,8 +143,8 @@ with DAG(
                                                 task_id='choose_delta_or_full_load',
                                                 python_callable=branch_on
                                                 )
-    dbt_job_run_raw_layers  = PythonOperator(task_id='dbt_job_run_raw_layers', python_callable=dbt_run_raw_layers)
-    data_dog_log_final = DummyOperator(task_id='data_dog_log_final', retries=3)
+    dbt_job_run_raw_layers  = PythonOperator(task_id='dbt_job_run_raw_layers', python_callable=dbt_run_raw_layers,trigger_rule="none_failed")
+    data_dog_log_final = DummyOperator(task_id='data_dog_log_final', retries=3,trigger_rule="none_failed")
 data_dog_log >> branch_operator >>[full_load,delta_load] >>dbt_job_run_raw_layers >>data_dog_log_final
 
 
