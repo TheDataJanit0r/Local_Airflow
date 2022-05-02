@@ -64,7 +64,7 @@ def branch_on():
     pg_password = os.getenv('PG_PASSWORD_WRITE_STAGING')
     pg_schema = os.getenv('PG_RAW_SCHEMA')
     pg_connect_string = f"postgresql://{pg_user}:{pg_password}@{pg_host}/{pg_database}"
-    #print(pg_connect_string)
+    
     pg_engine = create_engine(f"{pg_connect_string}", echo=False)
 
     merchants_active= pd.read_sql_table(os.getenv('PG_MERCHANTS_ACTIVE'), con=pg_engine,schema=os.getenv('PG_RAW_SCHEMA'))
