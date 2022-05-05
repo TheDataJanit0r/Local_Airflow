@@ -26,16 +26,12 @@ def run_delta_load():
     import warnings
     import os
     from dotenv import load_dotenv
-    # Logging
 
-    # os.chdir('include')
-    
-    # load_dotenv('enviroment_variables.env')
     warnings.filterwarnings("ignore")
     # Logging
     logger = getLogger()
     logger.setLevel('INFO')
-
+    # load_dotenv('enviroment_variables.env')
 
     pg_host =  os.getenv('PG_HOST_STAGING')
     pg_user = os.getenv('PG_USERNAME_WRITE_STAGING')
@@ -45,7 +41,7 @@ def run_delta_load():
     pg_database = os.getenv('PG_DATABASE')
     pg_schema = os.getenv('PG_RAW_SCHEMA')
     pg_tables_to_use = os.getenv('PG_ALL_SKUS')
-    pg_schema = os.getenv('PG_RAW_SCHEMA')
+    
     pg_connect_string = f"postgresql://{pg_user}:{pg_password}@{pg_host}/{pg_database}/{pg_schema}"
     pg_engine = create_engine(f"{pg_connect_string}", echo=False)
     chunk_size = 2000  # environ.get('CHUNK_SIZE')
@@ -114,7 +110,7 @@ def run_delta_load():
         print('no changed SKUs, finishing processing')
         return
     chunk = pd.DataFrame()
-    #print("finished reading Akeneo Data and will Start processing now")
+    print("finished reading Akeneo Data and will Start processing now")
 
 
 
@@ -126,12 +122,11 @@ def run_delta_load():
 
 
 
-    pg_host =  environ.get('PG_HOST')
-    pg_database = environ.get('PG_DATABASE')
-    pg_schema = environ.get('PG_SCHEMA_Junk')
-    pg_user = environ.get('PG_USERNAME_WRITE')
+
+    # pg_schema = environ.get('PG_SCHEMA_Junk')
+    # pg_user = environ.get('PG_USERNAME_WRITE')
    
-    pg_password =  environ.get('PG_PASSWORD_WRITE')
+    # pg_password =  environ.get('PG_PASSWORD_WRITE')
     pg_tables_to_use = os.getenv('PG_ALL_SKUS')
 
     pg_connect_string = f"postgresql://{pg_user}:{pg_password}@{pg_host}/{pg_database}"
@@ -157,7 +152,7 @@ def run_delta_load():
 
     connection.execute(f"delete from  {pg_schema}.{pg_tables_to_use} where identifier  in {identifiers} ;")
 
-    #print("Finished cleaning the table in the DWH")
+    print("Finished cleaning the table in the DWH")
     #df_product = pd.read_sql("select  * from akeneo.pim_catalog_product limit 100", con=mysql_engine)
     count = 0
 
@@ -166,6 +161,7 @@ def run_delta_load():
 
     pg_connect_string = f"postgresql+psycopg2://{pg_user}:{pg_password}@{pg_host}/{pg_database}"
     pg_engine = create_engine(f"{pg_connect_string}", echo=False)
+
 
 
     merchants_active= pd.read_sql_table(os.getenv('PG_MERCHANTS_ACTIVE'), con=pg_engine,schema=os.getenv('PG_RAW_SCHEMA'))
@@ -405,7 +401,7 @@ def run_delta_load():
                                                                             .get('<all_locales>') if json.loads(x)
                                                                                                         .get('type_packaging_unit') is not None 
                                                                             else None)
-    #print("Finished Extracting JSON Values from table")
+    print("Finished Extracting JSON Values from table")
     # print(chunk['type_packaging_unit'])
     # chunk.to_excel('chunk_dump.xlsx')
 
@@ -422,7 +418,7 @@ def run_delta_load():
     chunk['contact_info'] = chunk['contact_info'].combine_first(chunk['contact_info_2'])
 
     chunk.drop(['title_2','net_content_2','brand_2','net_content_liter_2','contact_info_2'],axis=1,inplace=True)
-    ##print("fnished Consolidating Those columns")
+    print("fnished Consolidating Those columns")
 
 
     ###############################################
@@ -438,7 +434,7 @@ def run_delta_load():
     'sku_category_fact', con=pg_engine, schema=os.getenv('PG_INFO_SCHEMA'))
     chunk = chunk.merge(sku_category_fact, how='inner',
                     left_on='identifier', right_on='sku')
-    #print("finished extracting SKU Fact Consolidating Those columns")
+    print("finished extracting SKU Fact Consolidating Those columns")
 
 
 
@@ -512,7 +508,7 @@ def run_delta_load():
     chunk.drop(attribute_options.columns, inplace=True, axis=1)
 
 
-    ##print("Finished Translating values from Attribute options")
+    print("Finished Translating values from Attribute options")
 
 
 
@@ -526,7 +522,7 @@ def run_delta_load():
         chunk[str(merchant)+'_id'] = chunk['raw_values_product'].apply(lambda x :json.loads(x)['gfgh_'+str(merchant)+'_id']['<all_channels>']['<all_locales>'] if 'gfgh_'+str(merchant)+'_id' in json.dumps(x) else None)
         chunk[str(merchant)+'_enabled'] = chunk['raw_values_product'].apply(lambda x :json.loads(x)['freigabe_'+str(merchant)+'_id']['<all_channels>']['<all_locales>'] if 'freigabe_'+str(merchant)+'_id' in json.dumps(x) else None)
     ##print(merchant)
-    #print("finished creating merchant Columns")
+    print("finished creating merchant Columns")
 
     #################################
     ######## Droping the JSON columns
@@ -539,13 +535,13 @@ def run_delta_load():
     # chunk.to_csv('dump_chunk.csv')
     ####################################################
     ######################### Writing the results in DWH 
-    #print("Writing to the DWH")
+    print("Writing to the DWH")
 
     chunk.drop('is_enabled',axis=1,inplace=True)
 
 
 
-    pg_schema = os.getenv('PG_SCHEMA_Junk')
+    # pg_schema = os.getenv('PG_SCHEMA_Junk')
     pg_tables_to_use =os.getenv('PG_ALL_SKUS')
     pg_connect_string = f"postgresql+psycopg2://{pg_user}:{pg_password}@{pg_host}/{pg_database}"
     pg_engine = create_engine(f"{pg_connect_string}", echo=False)

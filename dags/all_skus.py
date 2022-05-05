@@ -43,25 +43,21 @@ from include.delta_load_all_skus import run_delta_load
 from include.full_load_all_skus import run_full_load
 
 from include.dbt_run_raw_layer import dbt_run_raw_layers
+from include.dbt_run_all_layers import dbt_run_all_layers
+from include.my_sql_to_postgres import My_SQL_to_Postgres
 # Logging
 
 def branch_on():
-    # print('Current Directory is '+os.getcwd())
+
     # os.chdir('include')
-    # print('Current Directory is '+os.getcwd())
-    
     # load_dotenv('enviroment_variables.env')
-    # for x in os.environ.items():
-    #     print(x)
-    #     print("\n")
-    
     pg_host =  os.getenv('PG_HOST_STAGING')
-    pg_database = os.getenv('PG_DATABASE')
-
     pg_user = os.getenv('PG_USERNAME_WRITE_STAGING')
-   
-
     pg_password = os.getenv('PG_PASSWORD_WRITE_STAGING')
+
+
+
+    pg_database = os.getenv('PG_DATABASE')
     pg_schema = os.getenv('PG_RAW_SCHEMA')
     pg_connect_string = f"postgresql://{pg_user}:{pg_password}@{pg_host}/{pg_database}"
     
@@ -76,10 +72,10 @@ def branch_on():
 
     merchants_active_count= pd.read_sql_table('current_merchant_active_count', con=pg_engine,schema=pg_schema)
 
-    if (merchants_active.size > merchants_active_count.loc[0,'merchant_count']):
-        merchants_active_count.loc[0,'merchant_count'] = len(merchants_active)
+    if (merchants_active['merchant_key'].size != merchants_active_count.loc[0,'merchant_count']):
+        merchants_active_count.loc[0,'merchant_count'] = merchants_active['merchant_key'].size
         pg_tables_to_use ='current_merchant_active_count'
-        #merchants_active_count.to_sql(pg_tables_to_use,pg_engine,schema=pg_schema, if_exists='replace',index=False)
+        merchants_active_count.to_sql(pg_tables_to_use,pg_engine,schema=pg_schema, if_exists='replace',index=False)
         print("changed the count")
         return['run_full_load']
     else :
@@ -113,18 +109,18 @@ default_args = {
 with DAG(
     dag_id="all_skus_branch",
     start_date=datetime.today() - timedelta(days=1),
-    schedule_interval="0 */23 * * *",
+    schedule_interval="0 18-23/4 * * *",
     concurrency=100
     ,catchup=False
 ) as dag:
 
     # t1, t2 and t3 are examples of tasks created by instantiating operators
-    data_dog_log 	= DummyOperator(task_id='data_dog_log', retries=3)
-
-    
-    # dbt_job_run_raw_layers  = PythonOperator( task_id='dbt_job_run_raw_layers'
-    #                                         , python_callable=dbt_run_raw_layer
-    #                                         , trigger_rule='none_failed')
+    data_dog_log 	=  BashOperator(
+                                                            task_id='Started_All_SKUs_DAG',
+                                                            bash_command='echo "{{ task_instance_key_str }} {{ ts }}"',
+                                                            dag=dag,
+                                                            
+                                                            )
     full_load = PythonOperator(
                                 task_id='run_full_load'
                               , python_callable=run_full_load
@@ -143,9 +139,52 @@ with DAG(
                                                 task_id='choose_delta_or_full_load',
                                                 python_callable=branch_on
                                                 )
-    dbt_job_run_raw_layers  = PythonOperator(task_id='dbt_job_run_raw_layers', python_callable=dbt_run_raw_layers,trigger_rule="none_failed")
-    data_dog_log_final = DummyOperator(task_id='data_dog_log_final', retries=3,trigger_rule="none_failed")
-data_dog_log >> branch_operator >>[full_load,delta_load] >>dbt_job_run_raw_layers >>data_dog_log_final
-
-
     
+    copy_PIM_CATALOUG_PRODUCT_from_mySQL = PythonOperator(task_id='copy_PIM_CATALOUG_PRODUCT_from_mySQL', python_callable=My_SQL_to_Postgres,
+                                                          op_kwargs={'pg_schema': 'from_pim'
+                                                                    , 'pg_tables_to_use': 'cp_pim_catalog_product'
+                                                                    , 'mysql_tables_to_copy': 'pim_catalog_product'
+                                                                    , 'mysql_schema': 'akeneo'}, retries=5)
+    copy_PIM_CATALOUG_PRODUCT_model_from_mySQL = PythonOperator(task_id='copy_PIM_CATALOUG_PRODUCT_model_from_mySQL', python_callable=My_SQL_to_Postgres,
+                                                          op_kwargs={'pg_schema': 'from_pim'
+                                                                    , 'pg_tables_to_use': 'cp_pim_catalog_product_model'
+                                                                    , 'mysql_tables_to_copy': 'pim_catalog_product_model'
+                                                                    , 'mysql_schema': 'akeneo'}, retries=5)
+    copy_GFGH_DATA_from_mySQL = PythonOperator(task_id='copy_GFGH_DATA_from_mySQL', python_callable=My_SQL_to_Postgres,
+                                                          op_kwargs={'pg_schema': 'from_pim'
+                                                                    , 'pg_tables_to_use': 'gfgh_data'
+                                                                    , 'mysql_tables_to_copy': 'product'
+                                                                    , 'mysql_schema': 'gfghdata'}, retries=5)
+    dbt_job_raw_layers = PythonOperator(
+                                        task_id='dbt_job_raw_layers'
+                                        , python_callable=dbt_run_raw_layers,
+                                        trigger_rule='all_done'
+                                        ) 
+    dbt_job_all_layers = PythonOperator(
+                                        task_id='dbt_run_all_layers'
+                                        , python_callable=dbt_run_all_layers,
+                                        trigger_rule='all_done'
+                                        ) 
+    data_dog_log_final = BashOperator(
+                                        task_id='Finished_All_SKUs_fully',
+                                        bash_command='echo "{{ task_instance_key_str }} {{ ts }}"',
+                                        dag=dag,
+                                        trigger_rule="none_failed"
+                                    )
+    data_dog_log_middle = BashOperator(
+                                                            task_id='Finished_delta_or_full_load',
+                                                            bash_command='echo "{{ task_instance_key_str }} {{ ts }}"',
+                                                            dag=dag,
+                                                            trigger_rule="none_failed"
+                                                            )
+    data_dog_log_middle_2 = BashOperator(
+                                                                task_id='Finished_Copying_tables_from_MySQL',
+                                                                bash_command='echo "{{ task_instance_key_str }} {{ ts }}"',
+                                                                dag=dag,
+                                                                trigger_rule="none_failed"
+                                                            )
+
+
+data_dog_log >> branch_operator >>[full_load,delta_load] >>data_dog_log_middle
+data_dog_log_middle>>[copy_PIM_CATALOUG_PRODUCT_from_mySQL,copy_PIM_CATALOUG_PRODUCT_model_from_mySQL,copy_GFGH_DATA_from_mySQL]>>data_dog_log_middle_2
+data_dog_log_middle_2>>[dbt_job_raw_layers,dbt_job_all_layers] >>data_dog_log_final
