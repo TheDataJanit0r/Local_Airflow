@@ -8,4 +8,5 @@ RUN apt-get update \
 USER airflow
 COPY /requirements.txt /requirements.txt
 
-RUN pip install --no-cache-dir --user google-api-python-client google-auth-httplib2  google-auth-oauthlib python-dotenv gspread gspread-dataframe fuzzywuzzy
+RUN pip install --no-cache-dir --user google-api-python-client google-auth-httplib2  google-auth-oauthlib python-dotenv
+RUN pip install --no-cache-dir --user  gspread gspread-dataframe fuzzywuzzy

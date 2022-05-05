@@ -42,28 +42,32 @@ def run_full_load():
 
 
 
-    os.chdir('include')
+    # os.chdir('include')
     
-    load_dotenv('enviroment_variables.env')
+    # load_dotenv('enviroment_variables.env')
     warnings.filterwarnings("ignore")
     # Logging
     logger = getLogger()
     logger.setLevel('INFO')
 
 
-    pg_host =  os.getenv('PG_HOST')
+    
+    
+    pg_host =  os.getenv('PG_HOST_STAGING')
+    pg_user = os.getenv('PG_USERNAME_WRITE_STAGING')
+    pg_password = os.getenv('PG_PASSWORD_WRITE_STAGING')
+    # pg_database =os.getenv('pg_connect_string')
+
+
     pg_database = os.getenv('PG_DATABASE')
-
-    pg_user = os.getenv('PG_USERNAME_WRITE')
-
-    pg_password = os.getenv('PG_PASSWORD_WRITE')
+    pg_schema = os.getenv('PG_RAW_SCHEMA')
     pg_tables_to_use = os.getenv('PG_ALL_SKUS')
-    pg_schema = os.getenv('PG_SCHEMA_Junk')
+   
     pg_connect_string = f"postgresql://{pg_user}:{pg_password}@{pg_host}/{pg_database}/{pg_schema}"
     print(pg_connect_string)
     pg_engine = create_engine(f"{pg_connect_string}", echo=False)
     chunk_size = 1000  # os.getenv('CHUNK_SIZE')
-
+    
 
     mysql_host =  os.getenv('MYSQL_HOST')
     mysql_port =  os.getenv('MYSQL_PORT')
@@ -140,12 +144,12 @@ def run_full_load():
 
 
 
-    pg_host = os.getenv('PG_HOST')
+    # pg_host = os.getenv('PG_HOST')
     pg_database = os.getenv('PG_DATABASE')
-    pg_schema = os.getenv('PG_SCHEMA_Junk')  # os.getenv('PG_SCHEMA')
-    pg_user = os.getenv('PG_USERNAME_WRITE')
+    #pg_schema = os.getenv('PG_SCHEMA_Junk')  # os.getenv('PG_SCHEMA')
+    # pg_user = os.getenv('PG_USERNAME_WRITE')
 
-    pg_password = os.getenv('PG_PASSWORD_WRITE')
+    # pg_password = os.getenv('PG_PASSWORD_WRITE')s
     # pg_tables_to_use = 'all_skus_2'
 
     pg_connect_string = f"postgresql://{pg_user}:{pg_password}@{pg_host}/{pg_database}"
@@ -538,7 +542,7 @@ def run_full_load():
         #print("Writing to the DWH")
 
         chunk.drop('is_enabled',axis=1,inplace=True)
-        pg_schema = os.getenv('PG_SCHEMA_Junk')
+        # pg_schema = os.getenv('PG_SCHEMA_Junk')
         pg_tables_to_use =os.getenv('PG_ALL_SKUS')
 
 
@@ -552,7 +556,8 @@ def run_full_load():
         postgres_conn = psycopg2.connect(   host=pg_host,
                                             user=pg_user
                                         ,   password=pg_password
-                                            ,options="-c search_path=junk_tables")
+                                           ,database=pg_database
+                                            ,options="-c search_path=prod_raw_layer")
         Postgres_cursor = postgres_conn.cursor()
         import numpy as np
         sio = io.StringIO()
