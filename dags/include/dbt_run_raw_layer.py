@@ -1,12 +1,14 @@
-import os
-from dotenv import load_dotenv
-import requests
-import json
-os.chdir('include')
 
-load_dotenv('enviroment_variables.env')
 
 def dbt_run_raw_layers():
+    import os
+    from dotenv import load_dotenv
+    import requests
+    import json
+    # os.chdir('include')
+
+    # load_dotenv('enviroment_variables.env')
+
     myToken = os.getenv('dbt_token')
     myUrl = os.getenv('raw_layer_url')
 

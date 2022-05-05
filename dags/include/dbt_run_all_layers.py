@@ -1,12 +1,13 @@
-import os
-from dotenv import load_dotenv
-import requests
-import json
-os.chdir('include')
 
-load_dotenv('enviroment_variables.env')
+
+# load_dotenv('enviroment_variables.env')
 
 def dbt_run_all_layers():
+    import os
+    from dotenv import load_dotenv
+    import requests
+    import json
+# os.chdir('incl
     myToken = os.getenv('dbt_token')
     myUrl = os.getenv('all_layers_url')
 

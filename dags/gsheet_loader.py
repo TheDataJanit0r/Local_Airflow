@@ -158,8 +158,8 @@ with DAG(
                                                                     , 'sheet_name':'new'
                                                                    }, retries=5
                                         )
-    data_dog_log_final = DummyOperator(task_id='data_dog_log_final', retries=3)
-data_dog_log >> COPY_QR_KOLLEX_EXPRESS >>COPY_QR_KOLLEX_SHOP >>COPY_EXCLUDE_LIST  >>COPY_QR_KOLLEX_EXPRESS_SHEET_LOADER  #>> dbt_job_raw_layers#>>run_All_SKUs 
-COPY_QR_KOLLEX_EXPRESS_SHEET_LOADER >>COPY_QR_KOLLEX_SHOP_SHEET_LOADER >>COPY_HOLDING >>COPY_MERCHANT_ACTIVE
-COPY_MERCHANT_ACTIVE >>COPY_MERCHANT_ON_HOLD >>COPY_MERCHANT_NEW >>data_dog_log_final
+    data_dog_log_final = DummyOperator(task_id='data_dog_log_final', retries=3,trigger_rule='none_failed')
+data_dog_log >> [COPY_QR_KOLLEX_EXPRESS ,COPY_QR_KOLLEX_SHOP ,COPY_EXCLUDE_LIST  ,COPY_QR_KOLLEX_EXPRESS_SHEET_LOADER,  #>> dbt_job_raw_layers#>>run_All_SKUs 
+COPY_QR_KOLLEX_EXPRESS_SHEET_LOADER ,COPY_QR_KOLLEX_SHOP_SHEET_LOADER ,COPY_HOLDING ,COPY_MERCHANT_ACTIVE,
+COPY_MERCHANT_ACTIVE ,COPY_MERCHANT_ON_HOLD ,COPY_MERCHANT_NEW] >>data_dog_log_final
     
