@@ -40,13 +40,14 @@ def My_SQL_to_Postgres(**kwargs):
     mysql_password = os.getenv('MYSQL_PASSWORD')
     mysql_schema = kwargs['mysql_schema'] 
     mysql_tables_to_copy = kwargs['mysql_tables_to_copy']
+    chunksize_to_use = kwargs['chunksize_to_use']
     mysql_connect_string = f"mysql+mysqlconnector://{mysql_user}:{mysql_password}@{mysql_host}:{mysql_port}/{mysql_schema}"
     mysql_engine = create_engine(f"{mysql_connect_string}", echo=False)
 
    
 
     df = read_sql_table(mysql_tables_to_copy,
-                        con=mysql_engine, chunksize=10000)
+                        con=mysql_engine, chunksize=chunksize_to_use)
 
     pg_conn_args = dict(
         host=pg_host,
@@ -75,7 +76,7 @@ def My_SQL_to_Postgres(**kwargs):
                             dtype={'raw_values': types.JSON,
                                    'data': types.JSON},
                             con=pg_engine,
-                            chunksize=10000,
+                            chunksize=chunksize_to_use,
                             if_exists="append",
                             method="multi",
                             schema=pg_schema
