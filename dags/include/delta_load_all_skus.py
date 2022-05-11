@@ -75,7 +75,7 @@ def run_delta_load():
                                             , manufacturer
                                             , sales_unit_pkgg
                                             , name
-                                            , active
+                                            , case when active is null then 0 else active end as "active"
 
 
                                 from (select * from akeneo.pim_catalog_product where updated >= curdate() ) pcp
@@ -164,7 +164,7 @@ def run_delta_load():
 
 
 
-    merchants_active= pd.read_sql_table(os.getenv('PG_MERCHANTS_ACTIVE'), con=pg_engine,schema=os.getenv('PG_RAW_SCHEMA'))
+    merchants_active= pd.read_sql_table('merchants_all', con=pg_engine,schema=os.getenv('PG_RAW_SCHEMA'))
     merchants_active = merchants_active[~merchants_active["merchant_key"].str.contains('test',na=False)]
     merchants_active = merchants_active[merchants_active["merchant_key"]!='trinkkontor']
     merchants_active = merchants_active[merchants_active["merchant_key"]!='trinkkontor_trr']
@@ -227,7 +227,12 @@ def run_delta_load():
                                                                             .get('<all_locales>') if x is not None and json.loads(x)
                                                                                                         .get('shop_enabled') is not None 
                                                                             else None)
-
+    chunk['base_code'] = chunk['raw_values_model'].apply(lambda x: json.loads(x)
+                                                                            .get('shop_enabled')
+                                                                            .get('<all_channels>')
+                                                                            .get('<all_locales>') if x is not None and json.loads(x)
+                                                                                                        .get('code') is not None 
+                                                                            else None)
     chunk['gtin_single_unit'] = chunk['raw_values_model'].apply(lambda x: json.loads(x)
                                                                             .get('gtin_single_unit')
                                                                             .get('<all_channels>')

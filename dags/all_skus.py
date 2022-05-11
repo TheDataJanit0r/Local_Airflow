@@ -63,7 +63,7 @@ def branch_on():
     
     pg_engine = create_engine(f"{pg_connect_string}", echo=False)
 
-    merchants_active= pd.read_sql_table(os.getenv('PG_MERCHANTS_ACTIVE'), con=pg_engine,schema=os.getenv('PG_RAW_SCHEMA'))
+    merchants_active= pd.read_sql_table('merchants_all', con=pg_engine,schema=os.getenv('PG_RAW_SCHEMA'))
     merchants_active = merchants_active[~merchants_active["merchant_key"].str.contains('test',na=False)]
     merchants_active = merchants_active[merchants_active["merchant_key"]!='trinkkontor']
     merchants_active = merchants_active[merchants_active["merchant_key"]!='trinkkontor_trr']
@@ -145,19 +145,22 @@ with DAG(
                                                                     , 'pg_tables_to_use': 'cp_pim_catalog_product'
                                                                     , 'mysql_tables_to_copy': 'pim_catalog_product'
                                                                     , 'mysql_schema': 'akeneo'
+                                                                    , 'delta_load' :False
                                                                      ,'chunksize_to_use':2000}, retries=5)
     copy_PIM_CATALOUG_PRODUCT_model_from_mySQL = PythonOperator(task_id='copy_PIM_CATALOUG_PRODUCT_model_from_mySQL', python_callable=My_SQL_to_Postgres,
                                                           op_kwargs={'pg_schema': 'from_pim'
                                                                     , 'pg_tables_to_use': 'cp_pim_catalog_product_model'
                                                                     , 'mysql_tables_to_copy': 'pim_catalog_product_model'
                                                                     , 'mysql_schema': 'akeneo'
+                                                                    , 'delta_load' :False
                                                                      ,'chunksize_to_use':1000}, retries=5)
     copy_GFGH_DATA_from_mySQL = PythonOperator(task_id='copy_GFGH_DATA_from_mySQL', python_callable=My_SQL_to_Postgres,
                                                           op_kwargs={'pg_schema': 'from_pim'
-                                                                    , 'pg_tables_to_use': 'gfgh_data'
+                                                                    , 'pg_tables_to_use': 'cp_gfgh_data'
                                                                     , 'mysql_tables_to_copy': 'product'
                                                                     , 'mysql_schema': 'gfghdata'
-                                                                    ,'chunksize_to_use':10000}, retries=5)
+                                                                    , 'delta_load' :False
+                                                                    , 'chunksize_to_use':10000}, retries=5)
     dbt_job_raw_layers = PythonOperator(
                                         task_id='dbt_job_raw_layers'
                                         , python_callable=dbt_run_raw_layers,

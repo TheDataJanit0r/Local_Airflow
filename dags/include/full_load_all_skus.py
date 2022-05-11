@@ -98,7 +98,7 @@ def run_full_load():
                                             , manufacturer
                                             , sales_unit_pkgg
                                             , name
-                                            , active
+                                            , case when active is null then 0 else active end as "active"
 
 
                                 from akeneo.pim_catalog_product pcp
@@ -127,7 +127,6 @@ def run_full_load():
                                     from gfghdata.product
                                     where sku is not null
                                     group by sku) as gfghproduct on gfghproduct.sku = pcp.identifier 
-                                    #limit  1000
                                     """
                                             , con=mysql_engine
                                             , chunksize=chunk_size)
@@ -169,7 +168,7 @@ def run_full_load():
     pg_engine = create_engine(f"{pg_connect_string}", echo=False)
 
 
-    merchants_active= pd.read_sql_table(os.getenv('PG_MERCHANTS_ACTIVE'), con=pg_engine,schema=os.getenv('PG_RAW_SCHEMA'))
+    merchants_active= pd.read_sql_table('merchants_all', con=pg_engine,schema=os.getenv('PG_RAW_SCHEMA'))
     merchants_active = merchants_active[~merchants_active["merchant_key"].str.contains('test',na=False)]
     merchants_active = merchants_active[merchants_active["merchant_key"]!='trinkkontor']
     merchants_active = merchants_active[merchants_active["merchant_key"]!='trinkkontor_trr']
@@ -375,7 +374,12 @@ def run_full_load():
                                                                                     .get('<all_locales>') if x is not None and json.loads(x)
                                                                                                                 .get('title') is not None 
                                                                                     else None).astype(str)
-
+        chunk['base_code'] = chunk['raw_values_model'].apply(lambda x: json.loads(x)
+                                                                            .get('shop_enabled')
+                                                                            .get('<all_channels>')
+                                                                            .get('<all_locales>') if x is not None and json.loads(x)
+                                                                                                        .get('code') is not None 
+                                                                            else None)
 
         chunk['brand_2'] = chunk['raw_values_model'].apply(lambda x: json.loads(x)
                                                                                     .get('brand')
@@ -414,7 +418,7 @@ def run_full_load():
 
         ###################################################################################################################
         ############################## Consolidating Values of Title,Brand,Net_content_liter,Contact_info into one column
-        #print("Consolidating Those columns")
+        print("Consolidating Those columns")
         chunk['title'] = chunk['title'].combine_first(chunk['title_2'])
         chunk['net_content'] = chunk['net_content'].combine_first(chunk['net_content_2'])
         chunk['brand'] = chunk['brand'].combine_first(chunk['brand_2'])
@@ -427,7 +431,7 @@ def run_full_load():
 
         ###############################################
         ######################### adding Pim categories
-        ##print("extracting SKU Fact Consolidating Those columns")
+        print("extracting SKU Fact Consolidating Those columns")
         
         pg_connect_string = f"postgresql+psycopg2://{pg_user}:{pg_password}@{pg_host}/{pg_database}"
         pg_engine = create_engine(f"{pg_connect_string}", echo=False)
