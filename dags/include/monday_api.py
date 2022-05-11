@@ -10,6 +10,8 @@ from sqlalchemy import create_engine
 
 
 def process_monday_api_board(board_name, board_id, limit):
+   
+    #load_dotenv('enviroment_variables.env')
     api_key = environ.get('MONDAY_TOKEN')
     api_url = environ.get('MONDAY_API_URL')
     headers = {'Authorization': api_key}
@@ -52,7 +54,8 @@ def process_monday_api_board(board_name, board_id, limit):
                 break
         except JSONDecodeError as e:
             logging.error(e.msg)
-            return False
+            break
+           # return False
 
     df = pd.DataFrame(all_res)
     logging.info('Got {} rows. Now transforming columns...'.format(len(df)))
@@ -92,6 +95,13 @@ def process_monday_api_board(board_name, board_id, limit):
     return True
 
 
+
+
+
+
+
+
+
 def run_monday_api():
     boards = {
         "monday_funnel": "918285742",
@@ -110,4 +120,5 @@ def run_monday_api():
         while not board_processed:
             board_processed = process_monday_api_board(board_name, board_id, limit)
 
+    return
 
