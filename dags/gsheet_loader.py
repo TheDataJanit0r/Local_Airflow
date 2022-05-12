@@ -114,7 +114,15 @@ with DAG(
                                                                     , 'sheet_name':'special_cases_to_exclude'
                                                                    }, retries=5
                                         )
-
+    COPY_EXCLUDE_LIST_sheet_loader = PythonOperator(
+                                                                task_id='COPY_EXCLUDE_LIST_to_SHEET_LOADER'
+                                                                , python_callable=run_gsheet_load,
+                                                           op_kwargs={'pg_schema': 'sheet_loader'
+                                                                    , 'pg_tables_to_use': 'special_cases_to_exclude'
+                                                                    ,'url' :'https://docs.google.com/spreadsheets/d/1L1M9eo52Ok8OrB8dXRMoY2SMhmbhUdUF2sCW-FeQDU4/edit#gid=1397124555'
+                                                                    , 'sheet_name':'special_cases_to_exclude'
+                                                                   }, retries=5
+                                        )
     COPY_HOLDING = PythonOperator(
 
 
@@ -161,5 +169,5 @@ with DAG(
     data_dog_log_final = DummyOperator(task_id='data_dog_log_final', retries=3,trigger_rule='none_failed')
 data_dog_log >> [COPY_QR_KOLLEX_EXPRESS ,COPY_QR_KOLLEX_SHOP ,COPY_EXCLUDE_LIST  ,COPY_QR_KOLLEX_EXPRESS_SHEET_LOADER,  #>> dbt_job_raw_layers#>>run_All_SKUs 
 COPY_QR_KOLLEX_EXPRESS_SHEET_LOADER ,COPY_QR_KOLLEX_SHOP_SHEET_LOADER ,COPY_HOLDING ,COPY_MERCHANT_ACTIVE,
-COPY_MERCHANT_ACTIVE ,COPY_MERCHANT_ON_HOLD ,COPY_MERCHANT_NEW] >>data_dog_log_final
+COPY_MERCHANT_ACTIVE ,COPY_MERCHANT_ON_HOLD ,COPY_MERCHANT_NEW,COPY_EXCLUDE_LIST_sheet_loader] >>data_dog_log_final
     
