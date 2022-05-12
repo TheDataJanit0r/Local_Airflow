@@ -72,7 +72,7 @@ with DAG(
                                                         , python_callable=My_SQL_to_Postgres,
                                                           op_kwargs={'pg_schema': 'from_gfgh'
                                                                     , 'pg_tables_to_use': 'cp_import'
-                                                                    , 'mysql_tables_to_copy': 'product_import'
+                                                                    , 'mysql_tables_to_copy': 'import'
                                                                     , 'mysql_schema': 'gfghdata'
                                                                     ,'delta_load' :True
                                                                     ,'chunksize_to_use':10000}
@@ -81,14 +81,14 @@ with DAG(
                                                         , python_callable=My_SQL_to_Postgres,
                                                           op_kwargs={'pg_schema': 'from_gfgh'
                                                                     , 'pg_tables_to_use': 'cp_product_import'
-                                                                    , 'mysql_tables_to_copy': 'product'
+                                                                    , 'mysql_tables_to_copy': 'product_import'
                                                                     , 'mysql_schema': 'gfghdata'
                                                                     ,'delta_load' :True
                                                                     ,'chunksize_to_use':10000}
                                                         , retries=5)
 
     
-data_dog_log >> copy_GFGH_DATA_cp_import >>copy_cp_product_import# >>dbt_job_run_all_layers>>data_dog_log_final
+data_dog_log >>[copy_cp_product_import  ,copy_GFGH_DATA_cp_import] # >>dbt_job_run_all_layers>>data_dog_log_final
 
 
     

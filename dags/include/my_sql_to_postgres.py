@@ -63,8 +63,11 @@ def My_SQL_to_Postgres(**kwargs):
         connection.commit()
         print("Table {}.{}, emptied before adding updated data.".format(pg_schema, pg_tables_to_use))
     else :
-        df = read_sql("select * from {}.{} where created_at>=CURRENT_DATE()".format(mysql_schema,mysql_tables_to_copy),
-                    con=mysql_engine, chunksize=chunksize_to_use)
+         df = read_sql("""select * from {}.{} 
+                        where   created_at >= current_date - INTERVAL DAYOFWEEK(current_date)+6 DAY
+                            AND created_at < curdate() - INTERVAL DAYOFWEEK(curdate())-1 DAY""".format(mysql_schema,mysql_tables_to_copy),
+                      con=mysql_engine
+                    , chunksize=chunksize_to_use)
         
 
     
@@ -74,7 +77,7 @@ def My_SQL_to_Postgres(**kwargs):
         if not df_chunk.empty:
             # TODO fix this and make dtype flexible ( dict(column,table))
             # col_dtype = {dtype_column: types.JSON} if pg_table == dtype_table else None
-            #df_chunk["_updated_at"] = datetime.now()
+            df_chunk["_updated_at"] = datetime.now()
             df_chunk.to_sql(pg_tables_to_use,
                             dtype={'raw_values': types.JSON,
                                    'data': types.JSON},
