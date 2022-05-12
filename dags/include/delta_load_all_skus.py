@@ -423,7 +423,7 @@ def run_delta_load():
     chunk['contact_info'] = chunk['contact_info'].combine_first(chunk['contact_info_2'])
 
     chunk.drop(['title_2','net_content_2','brand_2','net_content_liter_2','contact_info_2'],axis=1,inplace=True)
-    print("fnished Consolidating Those columns")
+    print("finished Consolidating Those columns")
 
 
     ###############################################
@@ -438,7 +438,8 @@ def run_delta_load():
     sku_category_fact = pd.read_sql_table(
     'sku_category_fact', con=pg_engine, schema=os.getenv('PG_INFO_SCHEMA'))
     chunk = chunk.merge(sku_category_fact, how='inner',
-                    left_on='identifier', right_on='sku')
+                        left_on='identifier', right_on='sku',suffixes=('', '_y'))
+    chunk.drop(chunk.filter(regex='_y$').columns.tolist(),axis=1, inplace=True)
     print("finished extracting SKU Fact Consolidating Those columns")
 
 

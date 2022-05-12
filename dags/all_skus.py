@@ -41,7 +41,7 @@ import os
 from dotenv import load_dotenv, find_dotenv
 from include.delta_load_all_skus import run_delta_load
 from include.full_load_all_skus import run_full_load
-
+from include.full_load_all_skus_to_sql import run_full_load_to_sql
 from include.dbt_run_raw_layer import dbt_run_raw_layers
 from include.dbt_run_all_layers import dbt_run_all_layers
 from include.my_sql_to_postgres import My_SQL_to_Postgres
@@ -153,14 +153,14 @@ with DAG(
                                                                     , 'mysql_tables_to_copy': 'pim_catalog_product_model'
                                                                     , 'mysql_schema': 'akeneo'
                                                                     , 'delta_load' :False
-                                                                     ,'chunksize_to_use':1000}, retries=5)
+                                                                     ,'chunksize_to_use':2000}, retries=5)
     copy_GFGH_DATA_from_mySQL = PythonOperator(task_id='copy_GFGH_DATA_from_mySQL', python_callable=My_SQL_to_Postgres,
                                                           op_kwargs={'pg_schema': 'from_pim'
                                                                     , 'pg_tables_to_use': 'cp_gfgh_data'
                                                                     , 'mysql_tables_to_copy': 'product'
                                                                     , 'mysql_schema': 'gfghdata'
                                                                     , 'delta_load' :False
-                                                                    , 'chunksize_to_use':10000}, retries=5)
+                                                                    , 'chunksize_to_use':2000}, retries=5)
     dbt_job_raw_layers = PythonOperator(
                                         task_id='dbt_job_raw_layers'
                                         , python_callable=dbt_run_raw_layers,
