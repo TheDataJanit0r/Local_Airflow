@@ -1,4 +1,6 @@
-def run_full_load():
+
+
+def run_full_load_to_sql():
     from datetime import datetime, timedelta
 
     #from custom.MySqlToPostgreOperator import MySqlToPostgreOperator
@@ -441,8 +443,7 @@ def run_full_load():
         sku_category_fact = pd.read_sql_table(
             'sku_category_fact', con=pg_engine, schema=os.getenv('PG_INFO_SCHEMA'))
         chunk = chunk.merge(sku_category_fact, how='inner',
-                        left_on='identifier', right_on='sku',suffixes=('', '_y'))
-        chunk.drop(chunk.filter(regex='_y$').columns.tolist(),axis=1, inplace=True)
+                            left_on='identifier', right_on='sku')
         #print("finished extracting SKU Fact Consolidating Those columns")
 
 
@@ -525,7 +526,7 @@ def run_full_load():
         ###################################################
         ###################### Extracting Merchant Info 
 
-        #print("creating merchant Columns")
+        print("creating merchant Columns")
         for merchant in merchants_active['merchant_key']:
             #chunk[str(merchant)] = chunk['raw_values_product'].apply(lambda x :json.loads(x)['gfgh_'+str(merchant)+'_enabled']['<all_channels>']['<all_locales>'] if 'gfgh_'+str(merchant)+'_id' in json.dumps(x) else False).astype(str)
             chunk[str(merchant)+'_id'] = chunk['raw_values_product'].apply(lambda x :json.loads(x)['gfgh_'+str(merchant)+'_id']['<all_channels>']['<all_locales>'] if 'gfgh_'+str(merchant)+'_id' in json.dumps(x) else None).astype(str)
@@ -549,18 +550,16 @@ def run_full_load():
         chunk.drop('is_enabled',axis=1,inplace=True)
         # pg_schema = os.getenv('PG_SCHEMA_Junk')
         pg_tables_to_use =os.getenv('PG_ALL_SKUS')
-
-
-        if count==0 :
-            postgres_conn = psycopg2.connect(   host=pg_host,
+        
+        postgres_conn = psycopg2.connect(   host=pg_host,
                                             user=pg_user
                                         ,   password=pg_password
-                                            ,database=pg_database
+                                           ,database=pg_database
                                             ,options="-c search_path=prod_raw_layer")
-            Postgres_cursor = postgres_conn.cursor()
-             #drops old table and creates new empty table
-            Postgres_cursor.execute("DROP TABLE IF EXISTS {}.{}".format(pg_schema,pg_tables_to_use))
-        chunk.to_sql(pg_tables_to_use, pg_engine,schema=pg_schema, if_exists='append',index=False)
-        
-        print("##############Finished Writing to the DWH#############")
+        Postgres_cursor = postgres_conn.cursor()
+
+        Postgres_cursor.execute("DROP TABLE IF EXISTS {}.{}".format(pg_schema,pg_tables_to_use))
+        chunk.to_sql(pg_tables_to_use, pg_engine,schema=pg_schema, if_exists='append',index=False) #drops old table and creates new empty table
+        print("Success")
         count+=1
+       

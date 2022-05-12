@@ -1,4 +1,4 @@
-FROM apache/airflow:2.0.1
+FROM apache/airflow:2.3.0
 USER root
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
