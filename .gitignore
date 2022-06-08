@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -137,3 +138,10 @@ dags/include/utils/google.py
 dags/include/utils/generic.py
 dags/include/utils/db.py
 dags/include/milan_gedat.py
+=======
+*.pyc
+*.txt
+*.pyc~bb2452484b5d896faa15c65d6cb22cd9ddc3cb04
+dags/include/milan_gedat.py
+Testing Scripts/
+>>>>>>> release/v1.0.3
