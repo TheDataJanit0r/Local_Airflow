@@ -1,21 +1,9 @@
 from datetime import datetime, timedelta
 
-
-
-import psycopg2
-import csv
-import io
-#from tkinter.messagebox import QUESTION
-import mysql.connector
-import pandas as pd
 import os
-import numpy as np
 import time
-import io
-import csv
-from sqlalchemy import create_engine
-from dotenv import load_dotenv
-import requests
+
+
 from include.dbt_run_all_layers import dbt_run_all_layers
 
 import airflow
@@ -24,8 +12,8 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.operators.bash import BashOperator
 
 from include.monday_api import run_monday_api
-
-
+from include.gedat import run_gedat
+from airflow.models import Variable
 
    
 default_args = {
@@ -35,7 +23,7 @@ default_args = {
     'email_on_failure': False,
     'email_on_retry': False,
     'retries': 1,
-    'retry_delay': timedelta(minutes=5),
+    'retry_delay': timedelta(minutes=1),
     # 'queue': 'bash_queue',
     # 'pool': 'backfill',
     # 'priority_weight': 10,
@@ -62,7 +50,7 @@ with DAG(
 
     # t1, t2 and t3 are examples of tasks created by instantiating operators
     data_dog_log 	=  BashOperator        (
-                                            task_id='Started_All_SKUs_DAG',
+                                            task_id='Started_Monday_Routines_DAG',
                                             bash_command='echo "{{ task_instance_key_str }} {{ ts }}"',
                                             dag=dag,
                                             
@@ -72,8 +60,18 @@ with DAG(
                                             , python_callable=run_monday_api
                                             , retries=5
                                             )
-    
-data_dog_log >> run_monday_api# >>dbt_job_run_all_layers>>data_dog_log_final
+    get_gedat_results	= PythonOperator(
+                                            task_id='get_gedat_results'
+                                            , python_callable=run_gedat
+                                            , retries=5
+                                            )
+    data_dog_log_finished 	=  BashOperator        (
+                                            task_id='Finished_Monday_Routines_DAG',
+                                            bash_command='echo "{{ task_instance_key_str }} {{ ts }}"',
+                                            dag=dag,
+                                            
+                                            )
+data_dog_log >> run_monday_api >>get_gedat_results >>data_dog_log_finished
 
 
     

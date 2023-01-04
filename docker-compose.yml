@@ -38,9 +38,11 @@
 ---
 version: '3'
 x-airflow-common:
+  
   &airflow-common
   build : .
   #image: ${AIRFLOW_IMAGE_NAME:-kollex}
+
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -59,21 +61,21 @@ x-airflow-common:
   volumes:
     - ./dags:/opt/airflow/dags
     - ./dags/include:/opt/airflow/include
-    - ./dags/include/utils:/opt/airflow/utils
+   # - ./dags/include/utils:/opt/airflow/utils
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
   user: "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}"
-  env_file:
-      - ./dags/include/enviroment_variables.env
+
   depends_on:
-    redis:
-      condition: service_healthy
+    # redis:
+    #   condition: service_healthy
     postgres:
       condition: service_healthy
     
 
 services:
   postgres:
+    container_name: postgres_db
     image: postgres:13
     environment:
       POSTGRES_USER: airflow
@@ -87,20 +89,23 @@ services:
       retries: 5
     restart: always
 
-  redis:
-    image: redis:latest
-    ports:
-      - 6379:6379
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 30s
-      retries: 50
-    restart: always
+  # redis:
+  #   container_name: redis_queue
+  #   image: redis:latest
+  #   ports:
+  #     - 6379:6379
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 5s
+  #     timeout: 30s
+  #     retries: 50
+  #   restart: always
 
   airflow-webserver:
+    
     <<: *airflow-common
     command: webserver
+    container_name: airflow-webserver
     ports:
       - 8080:8080
     healthcheck:
@@ -113,6 +118,7 @@ services:
   airflow-scheduler:
     <<: *airflow-common
     command: scheduler
+    container_name: airflow-scheduler
     restart: always
 
   # airflow-worker:
@@ -123,6 +129,7 @@ services:
   airflow-init:
     <<: *airflow-common
     command: version
+    container_name: airflow-initializer
     environment:
       <<: *airflow-common-env
       _AIRFLOW_DB_UPGRADE: 'true'

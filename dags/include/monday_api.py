@@ -4,27 +4,27 @@ from json import JSONDecodeError
 from os import environ
 import pandas as pd
 import requests
-from dotenv import load_dotenv
 import os
 from sqlalchemy import create_engine
 
+from airflow.models import Variable
 
 def process_monday_api_board(board_name, board_id, limit):
    
     #load_dotenv('enviroment_variables.env')
-    api_key = environ.get('MONDAY_TOKEN')
-    api_url = environ.get('MONDAY_API_URL')
+    api_key = Variable.get("MONDAY_TOKEN")
+    api_url = Variable.get("MONDAY_API_URL")
     headers = {'Authorization': api_key}
 
 
-    pg_host =  os.getenv('PG_HOST_STAGING')
-    pg_user = os.getenv('PG_USERNAME_WRITE_STAGING')
-    pg_password = os.getenv('PG_PASSWORD_WRITE_STAGING')
+    pg_host =  Variable.get("PG_HOST")
+    pg_user =  Variable.get("PG_USERNAME_WRITE")
+    pg_password =  Variable.get("PG_PASSWORD_WRITE")
 
 
 
-    pg_database = os.getenv('PG_DATABASE')
-    pg_schema = os.getenv('PG_REPORTING_SCHEMA')
+    pg_database = Variable.get("PG_DATABASE")
+    pg_schema = Variable.get("PG_REPORTING_SCHEMA")
     pg_connect_string = f"postgresql://{pg_user}:{pg_password}@{pg_host}/{pg_database}"
     
     engine = create_engine(f"{pg_connect_string}", echo=False)
@@ -81,15 +81,15 @@ def process_monday_api_board(board_name, board_id, limit):
     final_df.to_sql(
         board_name,
         con=engine,
-        schema=os.getenv('PG_REPORTING_SCHEMA'),
+        schema= Variable.get("PG_REPORTING_SCHEMA"),
         chunksize=400,
         method="multi",
         if_exists="replace",
         index=False,
     )
     with engine.connect() as connection:
-        connection.execute("GRANT USAGE ON SCHEMA prod_reporting_layer TO dwh_readonly")
-        connection.execute("GRANT SELECT ON ALL TABLES IN SCHEMA prod_reporting_layer TO dwh_readonly")
+        connection.execute(f"GRANT USAGE ON SCHEMA prod_reporting_layer TO {pg_user}")
+        connection.execute(f"GRANT SELECT ON ALL TABLES IN SCHEMA prod_reporting_layer TO {pg_user}")
     logging.info(f"Finished uploading, closing connection")
     engine.dispose()
     return True
